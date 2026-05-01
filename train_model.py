@@ -12,6 +12,7 @@ import argparse
 import pandas as pd
 import hf_hydrodata
 from forecast_functions import (
+    fit_monthly_avg_model,
     get_training_test_data,
     fit_longterm_avg_model,
     compute_metrics,
@@ -29,7 +30,7 @@ parser.add_argument('--train-start', default='1990-01-01')
 parser.add_argument('--train-end',   default='2022-12-31')
 parser.add_argument('--test-start',  default='2023-01-01')
 parser.add_argument('--test-end',    default='2024-12-31')
-parser.add_argument('--model',       default='longterm_avg', choices=['longterm_avg'])
+parser.add_argument('--model',       default='longterm_avg', choices=['longterm_avg', 'monthly_avg'])
 parser.add_argument('--refit',       default='True')
 parser.add_argument('--validate',    default='True')
 args = parser.parse_args()
