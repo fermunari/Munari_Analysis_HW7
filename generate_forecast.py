@@ -14,6 +14,7 @@ import hf_hydrodata
 from forecast_functions import (
     get_recent_data,
     make_5day_forecast_longterm,
+    make_5day_forecast_doy,
     load_model,
 )
 
@@ -23,7 +24,7 @@ parser.add_argument('--pin',           required=True)
 parser.add_argument('--gauge-id',      default='09506000')
 parser.add_argument('--ar-order',      type=int, default=7)
 parser.add_argument('--forecast-date', default='2024-04-30')
-parser.add_argument('--model',         default='longterm_avg', choices=['longterm_avg'])
+parser.add_argument('--model',         default='longterm_avg', choices=['longterm_avg', 'doy'])
 args = parser.parse_args()
 
 forecast_date_ts = pd.Timestamp(args.forecast_date)
@@ -46,6 +47,15 @@ if args.model == 'longterm_avg':
     forecast_df = make_5day_forecast_longterm(mean_flow, args.forecast_date)
     model_label = 'Long-term Average'
 
+# ── Day of the year average model ────────────────────────────────────────────────────
+if args.model == 'doy':
+    print("\n--- Step 2: Load DOY model ---")
+    doy_means = load_model()
+
+    print("\n--- Step 3: Generate 5-day DOY forecast ---")
+    forecast_df = make_5day_forecast_doy(doy_means, args.forecast_date)
+    model_label = 'Day-of-Year Average'
+
 print(f"\n  5-Day Streamflow Forecast — Verde River ({model_label})")
 print(f"  Starting: {forecast_date_ts.date()}\n")
 print(f"  {'Date':<14}  Forecast (cfs)")
@@ -54,6 +64,7 @@ for date, row in forecast_df.iterrows():
     print(f"  {str(date.date()):<14}  {row['Forecast_cfs']:.1f}")
 
 recent_cfs = recent['streamflow_cfs'].iloc[-30:]
+
 
 fig, ax = plt.subplots(figsize=(10, 4))
 ax.plot(recent_cfs.index, recent_cfs.values,
@@ -69,3 +80,4 @@ plt.tight_layout()
 plt.savefig('forecast_plot.png', dpi=150, bbox_inches='tight')
 print("  Plot saved to forecast_plot.png")
 plt.show()
+

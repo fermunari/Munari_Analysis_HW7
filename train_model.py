@@ -19,6 +19,7 @@ from forecast_functions import (
     plot_validation,
     save_model,
     load_model,
+    fit_doy_model
 )
 
 parser = argparse.ArgumentParser()
@@ -30,7 +31,7 @@ parser.add_argument('--train-start', default='1990-01-01')
 parser.add_argument('--train-end',   default='2022-12-31')
 parser.add_argument('--test-start',  default='2023-01-01')
 parser.add_argument('--test-end',    default='2024-12-31')
-parser.add_argument('--model',       default='longterm_avg', choices=['longterm_avg', 'monthly_avg'])
+parser.add_argument('--model',       default='longterm_avg', choices=['longterm_avg', 'monthly_avg', 'doy'])
 parser.add_argument('--refit',       default='True')
 parser.add_argument('--validate',    default='True')
 args = parser.parse_args()
@@ -81,3 +82,41 @@ if args.model == 'longterm_avg':
         )
 
 print("\nTraining complete.")
+
+# ── Day of the year model ───────────────────────────────────────────────────
+if args.model == 'doy':
+    print("\n--- Step 2: Fit DOY model ---")
+
+    if REFIT_MODEL or not os.path.exists('saved_model.pkl'):
+        doy_means = fit_doy_model(train)
+        save_model(doy_means)
+    else:
+        doy_means = load_model()
+
+    if RUN_VALIDATION:
+        print("\n--- Step 3: Validate DOY model ---")
+
+        train_fitted = pd.Series(
+            train.index.dayofyear.map(doy_means),
+            index=train.index
+        )
+
+        forecast_series = pd.Series(
+            test.index.dayofyear.map(doy_means),
+            index=test.index
+        )
+
+        metrics = compute_metrics(test['streamflow_cfs'].values, forecast_series.values)
+
+        print("\nValidation metrics:")
+        for name, val in metrics.items():
+            print(f"{name}: {val:.4f}")
+
+        plot_validation(
+            train['streamflow_cfs'],
+            test['streamflow_cfs'],
+            forecast_series,
+            metrics,
+            'Day-of-Year Average',
+            train_forecast_cfs=train_fitted
+        )

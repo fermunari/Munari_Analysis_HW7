@@ -178,3 +178,26 @@ def load_model(path='saved_model.pkl'):
         model = pickle.load(f)
     print(f"  Model loaded from {path}")
     return model
+
+##Day of the year model (January 24th)
+
+def fit_doy_model(train_df):
+    """
+    Fit a day-of-year average model.
+    """
+    doy_means = train_df.groupby(train_df.index.dayofyear)['streamflow_cfs'].mean()
+    return doy_means
+
+
+def make_5day_forecast_doy(doy_means, forecast_date, n_days=5):
+    """
+    Generate a 5-day forecast using day-of-year averages.
+    """
+    dates = pd.date_range(start=forecast_date, periods=n_days, freq='D')
+    forecasts = []
+
+    for date in dates:
+        doy = min(date.dayofyear, 365)
+        forecasts.append(doy_means.loc[doy])
+
+    return pd.DataFrame({'Forecast_cfs': forecasts}, index=dates)
